@@ -1,0 +1,17 @@
+#use 5.008002;
+use 5.006002;
+use ExtUtils::MakeMaker;
+
+WriteMakefile(
+    dist	 => {
+	             PREOP	=> 'pod2text XS.pm | tee README >$(DISTVNAME)/README; chmod -R u=rwX,go=rX . ;',
+	             COMPRESS	=> 'gzip -9v',
+	             SUFFIX	=> '.gz',
+	            },
+    EXE_FILES    => [ "bin/cpanel_json_xs" ],
+    VERSION_FROM => "XS.pm",
+    NAME         => "Cpanel::JSON::XS",
+    PREREQ_PM    => {
+    },
+);
+
