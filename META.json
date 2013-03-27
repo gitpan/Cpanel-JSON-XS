@@ -34,7 +34,11 @@
          "recommends" : {
             "Encode" : "1.9801"
          },
-         "requires" : {}
+         "requires" : {
+            "Pod::Text" : "2.08",
+            "Pod::Usage" : "1.51",
+            "common::sense" : "3.6"
+         }
       }
    },
    "release_status" : "stable",
@@ -50,5 +54,5 @@
          "url" : "https://github.com/rurban/Cpanel-JSON-XS"
       }
    },
-   "version" : "2.3305"
+   "version" : "2.3306"
 }
