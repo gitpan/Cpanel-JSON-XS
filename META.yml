@@ -22,10 +22,10 @@ recommends:
 requires:
   Pod::Text: 2.08
   Pod::Usage: 1.51
-  common::sense: 3.6
+  common::sense: 3.5
 resources:
   bugtracker: https://github.com/rurban/Cpanel-JSON-XS/issues
   homepage: http://home.schmorp.de/
   license: http://dev.perl.org/licenses/
   repository: https://github.com/rurban/Cpanel-JSON-XS
-version: 2.3306
+version: 2.3307

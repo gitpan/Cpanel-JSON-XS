@@ -63,6 +63,7 @@
 #define F_CONV_BLESSED   0x00000800UL
 #define F_RELAXED        0x00001000UL
 #define F_ALLOW_UNKNOWN  0x00002000UL
+#define F_BINARY         0x00004000UL
 #define F_HOOK           0x00080000UL // some hooks exist, so slow-path processing
 
 #define F_PRETTY    F_INDENT | F_SPACE_BEFORE | F_SPACE_AFTER
@@ -222,11 +223,11 @@ encode_utf8 (unsigned char *s, UV ch)
 
 /* convert offset pointer to character index, sv must be string */
 static STRLEN
-ptr_to_index (SV *sv, char *offset)
+ptr_to_index (SV *sv, const U8 *offset)
 {
   return SvUTF8 (sv)
-         ? utf8_distance (offset, SvPVX (sv))
-         : offset - SvPVX (sv);
+         ? utf8_distance (offset, (U8*)SvPVX (sv))
+         : offset - (U8*)SvPVX (sv);
 }
 
 /*/////////////////////////////////////////////////////////////////////////// */
@@ -402,9 +403,9 @@ encode_str (enc_t *enc, char *str, STRLEN len, int is_utf8)
                   STRLEN clen;
                   UV uch;
 
-                  if (is_utf8)
+                  if (is_utf8 && !(enc->json.flags & F_BINARY))
                     {
-                      uch = decode_utf8 (str, end - str, &clen);
+                      uch = decode_utf8 ((unsigned char *)str, end - str, &clen);
                       if (clen == (STRLEN)-1)
                         croak ("malformed or illegal unicode character in string [%.11s], cannot convert to JSON", str);
                     }
@@ -416,7 +417,15 @@ encode_str (enc_t *enc, char *str, STRLEN len, int is_utf8)
 
                   if (uch < 0x80/*0x20*/ || uch >= enc->limit)
                     {
-                      if (uch >= 0x10000UL)
+		      if (enc->json.flags & F_BINARY)
+			{
+                          need (enc, len += 3);
+                          *enc->cur++ = '\\';
+                          *enc->cur++ = 'x';
+                          *enc->cur++ = PL_hexdigit [(uch >>  4) & 15];
+                          *enc->cur++ = PL_hexdigit [ uch & 15];
+			}
+                      else if (uch >= 0x10000UL)
                         {
                           if (uch >= 0x110000UL)
                             croak ("out of range codepoint (0x%lx) encountered, unrepresentable in JSON", (unsigned long)uch);
@@ -427,7 +436,7 @@ encode_str (enc_t *enc, char *str, STRLEN len, int is_utf8)
                                    (int)((uch - 0x10000) % 0x400 + 0xDC00));
                           enc->cur += 12;
                         }
-                      else
+		      else
                         {
                           need (enc, len += 5);
                           *enc->cur++ = '\\';
@@ -435,12 +444,17 @@ encode_str (enc_t *enc, char *str, STRLEN len, int is_utf8)
                           *enc->cur++ = PL_hexdigit [ uch >> 12      ];
                           *enc->cur++ = PL_hexdigit [(uch >>  8) & 15];
                           *enc->cur++ = PL_hexdigit [(uch >>  4) & 15];
-                          *enc->cur++ = PL_hexdigit [(uch >>  0) & 15];
+                          *enc->cur++ = PL_hexdigit [ uch & 15];
                         }
 
                       str += clen;
                     }
                   else if (enc->json.flags & F_LATIN1)
+                    {
+                      *enc->cur++ = uch;
+                      str += clen;
+                    }
+                  else if (enc->json.flags & F_BINARY)
                     {
                       *enc->cur++ = uch;
                       str += clen;
@@ -457,7 +471,7 @@ encode_str (enc_t *enc, char *str, STRLEN len, int is_utf8)
                   else
                     {
                       need (enc, len += UTF8_MAXBYTES - 1); /* never more than 11 bytes needed */
-                      enc->cur = encode_utf8 (enc->cur, uch);
+                      enc->cur = (char*)encode_utf8 ((U8*)enc->cur, uch);
                       ++str;
                     }
                 }
@@ -894,6 +908,7 @@ encode_json (SV *scalar, JSON *json)
   enc.end       = SvEND (enc.sv);
   enc.indent    = 0;
   enc.limit     = enc.json.flags & F_ASCII  ? 0x000080UL
+                : enc.json.flags & F_BINARY ? 0x000080UL
                 : enc.json.flags & F_LATIN1 ? 0x000100UL
                                             : 0x110000UL;
 
@@ -904,7 +919,7 @@ encode_json (SV *scalar, JSON *json)
   SvCUR_set (enc.sv, enc.cur - SvPVX (enc.sv));
   *SvEND (enc.sv) = 0; /* many xs functions expect a trailing 0 for text strings */
 
-  if (!(enc.json.flags & (F_ASCII | F_LATIN1 | F_UTF8)))
+  if (!(enc.json.flags & (F_ASCII | F_LATIN1 | F_BINARY | F_UTF8)))
     SvUTF8_on (enc.sv);
 
   if (enc.json.flags & F_SHRINK)
@@ -999,6 +1014,36 @@ fail:
   return (UV)-1;
 }
 
+static UV
+decode_2hex (dec_t *dec)
+{
+  signed char d1, d2;
+  unsigned char *cur = (unsigned char *)dec->cur;
+
+  d1 = decode_hexdigit [cur [0]]; if (expect_false (d1 < 0)) ERR ("exactly two hexadecimal digits expected");
+  d2 = decode_hexdigit [cur [1]]; if (expect_false (d2 < 0)) ERR ("exactly two hexadecimal digits expected");
+  dec->cur += 2;
+  return ((UV)d1) << 4
+       | ((UV)d2);
+fail:
+  return (UV)-1;
+}
+
+static UV
+decode_3oct (dec_t *dec)
+{
+  IV d1, d2, d3;
+  unsigned char *cur = (unsigned char *)dec->cur;
+
+  d1 = (IV)(cur[0] - '0'); if (d1 < 0 || d1 > 7) ERR ("exactly three octal digits expected");
+  d2 = (IV)(cur[1] - '0'); if (d2 < 0 || d2 > 7) ERR ("exactly three octal digits expected");
+  d3 = (IV)(cur[2] - '0'); if (d3 < 0 || d3 > 7) ERR ("exactly three octal digits expected");
+  dec->cur += 3;
+  return (d1 * 64) + (d2 * 8) + d3;
+fail:
+  return (UV)-1;
+}
+
 static SV *
 decode_str (dec_t *dec)
 {
@@ -1034,6 +1079,34 @@ decode_str (dec_t *dec)
                   case 'f': ++dec_cur; *cur++ = '\014'; break;
                   case 'r': ++dec_cur; *cur++ = '\015'; break;
 
+                  case 'x':
+		    {
+		      UV c;
+		      if (!(dec->json.flags & F_BINARY))
+                        ERR ("illegal hex character in non-binary string");
+		      ++dec_cur;
+                      dec->cur = dec_cur;
+                      c = decode_2hex (dec);
+                      if (c == (UV)-1)
+                        goto fail;
+		      *cur++ = c;
+		      dec_cur += 2;
+		      break;
+		    }
+                  case '0': case '1': case '2': case '3':
+		  case '4': case '5': case '6': case '7':
+		    {
+		      UV c;
+		      if (!(dec->json.flags & F_BINARY))
+                        ERR ("illegal octal character in non-binary string");
+                      dec->cur = dec_cur;
+                      c = decode_3oct (dec);
+                      if (c == (UV)-1)
+                        goto fail;
+		      *cur++ = c;
+		      dec_cur += 3;
+		      break;
+		    }
                   case 'u':
                     {
                       UV lo, hi;
@@ -1044,9 +1117,11 @@ decode_str (dec_t *dec)
                       dec_cur = dec->cur;
                       if (hi == (UV)-1)
                         goto fail;
+		      if (dec->json.flags & F_BINARY)
+                        ERR ("illegal unicode character in binary string");
 
                       /* possibly a surrogate pair */
-                      if (hi >= 0xd800)
+                      if (hi >= 0xd800) {
                         if (hi < 0xdc00)
                           {
                             if (dec_cur [0] != '\\' || dec_cur [1] != 'u')
@@ -1065,14 +1140,16 @@ decode_str (dec_t *dec)
 
                             hi = (hi - 0xD800) * 0x400 + (lo - 0xDC00) + 0x10000;
                           }
-                        else if (hi < 0xe000)
+                        else if (hi < 0xe000) {
                           ERR ("missing high surrogate character in surrogate pair");
+			}
+		      }
 
                       if (hi >= 0x80)
                         {
                           utf8 = 1;
 
-                          cur = encode_utf8 (cur, hi);
+                          cur = (char*)encode_utf8 ((U8*)cur, hi);
                         }
                       else
                         *cur++ = hi;
@@ -1092,7 +1169,7 @@ decode_str (dec_t *dec)
 
               --dec_cur;
 
-              decode_utf8 (dec_cur, dec->end - dec_cur, &clen);
+              decode_utf8 ((U8*)dec_cur, dec->end - dec_cur, &clen);
               if (clen == (STRLEN)-1)
                 ERR ("malformed UTF-8 character in JSON string");
 
@@ -1357,7 +1434,7 @@ decode_hv (dec_t *dec)
           for (;;)
             {
               /* the >= 0x80 is false on most architectures */
-              if (p == e || *p < 0x20 || *p >= 0x80 || *p == '\\')
+              if (p == e || *p < 0x20 || *(U8*)p >= 0x80 || *p == '\\')
                 {
                   /* slow path, back up and use decode_str */
                   SV *key = decode_str (dec);
@@ -1560,7 +1637,7 @@ fail:
 }
 
 static SV *
-decode_json (SV *string, JSON *json, char **offset_return)
+decode_json (SV *string, JSON *json, U8 **offset_return)
 {
   dec_t dec;
   SV *sv;
@@ -1622,7 +1699,7 @@ decode_json (SV *string, JSON *json, char **offset_return)
   sv = decode_sv (&dec);
 
   if (offset_return)
-    *offset_return = dec.cur;
+    *offset_return = (U8*)dec.cur;
 
   if (!(offset_return || !sv))
     {
@@ -1648,12 +1725,12 @@ decode_json (SV *string, JSON *json, char **offset_return)
       ENTER;
       SAVEVPTR (PL_curcop);
       PL_curcop = &cop;
-      pv_uni_display (uni, dec.cur, dec.end - dec.cur, 20, UNI_DISPLAY_QQ);
+      pv_uni_display (uni, (U8*)dec.cur, dec.end - dec.cur, 20, UNI_DISPLAY_QQ);
       LEAVE;
 #endif
       croak ("%s, at character offset %d (before \"%s\")",
              dec.err,
-             (int)ptr_to_index (string, dec.cur),
+             (int)ptr_to_index (string, (U8*)dec.cur),
              dec.cur != dec.end ? SvPV_nolen (uni) : "(end of string)");
     }
 
@@ -1866,6 +1943,7 @@ void ascii (JSON *self, int enable = 1)
 	ALIAS:
         ascii           = F_ASCII
         latin1          = F_LATIN1
+        binary          = F_BINARY
         utf8            = F_UTF8
         indent          = F_INDENT
         canonical       = F_CANONICAL
@@ -1892,6 +1970,7 @@ void get_ascii (JSON *self)
 	ALIAS:
         get_ascii           = F_ASCII
         get_latin1          = F_LATIN1
+        get_binary          = F_BINARY
         get_utf8            = F_UTF8
         get_indent          = F_INDENT
         get_canonical       = F_CANONICAL
@@ -1973,7 +2052,7 @@ void decode_prefix (JSON *self, SV *jsonstr)
 	PPCODE:
 {
 	SV *sv;
-        char *offset;
+        U8 *offset;
         PUTBACK; sv = decode_json (jsonstr, self, &offset); SPAGAIN;
         EXTEND (SP, 2);
         PUSHs (sv);
@@ -2036,7 +2115,7 @@ void incr_parse (JSON *self, SV *jsonstr = 0)
           do
             {
               SV *sv;
-              char *offset;
+              U8 *offset;
 
               if (!INCR_DONE (self))
                 {
@@ -2062,11 +2141,11 @@ void incr_parse (JSON *self, SV *jsonstr = 0)
               PUTBACK; sv = decode_json (self->incr_text, self, &offset); SPAGAIN;
               XPUSHs (sv);
 
-              self->incr_pos -= offset - SvPVX (self->incr_text);
+              self->incr_pos -= offset - (U8*)SvPVX (self->incr_text);
               self->incr_nest = 0;
               self->incr_mode = 0;
 
-              sv_chop (self->incr_text, offset);
+              sv_chop (self->incr_text, (const char* const)offset);
             }
           while (GIMME_V == G_ARRAY);
 }
