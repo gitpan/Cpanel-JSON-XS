@@ -1,14 +1,14 @@
 ---
-abstract: unknown
+abstract: 'JSON::XS for Cpanel, fast and correct serialising, also for 5.6.2'
 author:
-  - unknown
+  - 'Reini Urban <rurban@cpanel.net>'
 build_requires:
   ExtUtils::MakeMaker: 0
 configure_requires:
   ExtUtils::MakeMaker: 0
 dynamic_config: 1
 generated_by: 'ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.120921'
-license: unknown
+license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
@@ -17,5 +17,12 @@ no_index:
   directory:
     - t
     - inc
+recommends:
+  Encode: 1.9801
 requires: {}
-version: 2.33_04
+resources:
+  bugtracker: https://github.com/rurban/Cpanel-JSON-XS/issues
+  homepage: http://home.schmorp.de/
+  license: http://dev.perl.org/licenses/
+  repository: https://github.com/rurban/Cpanel-JSON-XS
+version: 2.3305

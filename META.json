@@ -1,12 +1,12 @@
 {
-   "abstract" : "unknown",
+   "abstract" : "JSON::XS for Cpanel, fast and correct serialising, also for 5.6.2",
    "author" : [
-      "unknown"
+      "Reini Urban <rurban@cpanel.net>"
    ],
    "dynamic_config" : 1,
    "generated_by" : "ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.120921",
    "license" : [
-      "unknown"
+      "perl_5"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
@@ -31,9 +31,24 @@
          }
       },
       "runtime" : {
+         "recommends" : {
+            "Encode" : "1.9801"
+         },
          "requires" : {}
       }
    },
-   "release_status" : "testing",
-   "version" : "2.33_04"
+   "release_status" : "stable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/rurban/Cpanel-JSON-XS/issues"
+      },
+      "homepage" : "http://home.schmorp.de/",
+      "license" : [
+         "http://dev.perl.org/licenses/"
+      ],
+      "repository" : {
+         "url" : "https://github.com/rurban/Cpanel-JSON-XS"
+      }
+   },
+   "version" : "2.3305"
 }
