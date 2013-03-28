@@ -28,4 +28,4 @@ resources:
   homepage: http://home.schmorp.de/
   license: http://dev.perl.org/licenses/
   repository: https://github.com/rurban/Cpanel-JSON-XS
-version: 2.3307
+version: 2.3308
