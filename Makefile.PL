@@ -12,26 +12,26 @@ WriteMakefile(
   VERSION_FROM => "XS.pm",
   NAME         => "Cpanel::JSON::XS",
   PREREQ_PM    => {
-    'common::sense' => '3.5',
     'Pod::Text'     => '2.08',
-    'Pod::Usage'    => '1.51',
+    'Pod::Usage'    => '1.33',
   },
   LICENSE  => 'perl',
   ($] >= 5.005 ?
    (ABSTRACT_FROM  => 'XS.pm',
-    AUTHOR         => 'Reini Urban <rurban@cpanel.net>',
+    AUTHOR         => 'cPanel Inc. <cpan@cpanel.net>',
     # ORIGINAL_AUTHOR => 'Marc Lehmann <schmorp@schmorp.de>'
    ) : ()),
   ($ExtUtils::MakeMaker::VERSION gt '6.46' ?
    ('META_MERGE'  =>
     {"recommends" =>
      {
+       'common::sense' => '3.5',
        'Encode'        => '1.9801',
      },
      resources =>
      {
        license     => 'http://dev.perl.org/licenses/',
-       bugtracker  => 'https://github.com/rurban/Cpanel-JSON-XS/issues',
+       bugtracker  => 'https://rt.cpan.org/Public/Dist/Display.html?Queue=Cpanel-JSON-XS',
        repository  => 'https://github.com/rurban/Cpanel-JSON-XS',
        homepage    => 'http://home.schmorp.de/',
      },
@@ -43,7 +43,10 @@ WriteMakefile(
 package MY;
 sub test {
   local $_ = shift->SUPER::test(@_);
-  s/TEST_FILES = /TEST_FILES = -Mcommon::sense /;
+  eval { require common::sense; };
+  unless ($@) {
+    s/TEST_FILES = /TEST_FILES = -Mcommon::sense /;
+  }
   $_
 }
 
