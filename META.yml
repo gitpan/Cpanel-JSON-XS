@@ -7,7 +7,7 @@ build_requires:
 configure_requires:
   ExtUtils::MakeMaker: 0
 dynamic_config: 1
-generated_by: 'ExtUtils::MakeMaker version 6.66, CPAN::Meta::Converter version 2.130880'
+generated_by: 'ExtUtils::MakeMaker version 6.78, CPAN::Meta::Converter version 2.131560'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -24,8 +24,8 @@ requires:
   Pod::Text: 2.08
   Pod::Usage: 1.33
 resources:
-  bugtracker: https://rt.cpan.org/Public/Dist/Display.html?Queue=Cpanel-JSON-XS
-  homepage: http://home.schmorp.de/
+  bugtracker: https://github.com/rurban/Cpanel-JSON-XS/issues
+  homepage: http://software.schmorp.de/pkg/JSON-XS.html
   license: http://dev.perl.org/licenses/
   repository: https://github.com/rurban/Cpanel-JSON-XS
-version: 2.3314
+version: 2.3401

@@ -4,7 +4,7 @@
       "cPanel Inc. <cpan@cpanel.net>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.66, CPAN::Meta::Converter version 2.130880",
+   "generated_by" : "ExtUtils::MakeMaker version 6.78, CPAN::Meta::Converter version 2.131560",
    "license" : [
       "perl_5"
    ],
@@ -44,9 +44,9 @@
    "release_status" : "stable",
    "resources" : {
       "bugtracker" : {
-         "web" : "https://rt.cpan.org/Public/Dist/Display.html?Queue=Cpanel-JSON-XS"
+         "web" : "https://github.com/rurban/Cpanel-JSON-XS/issues"
       },
-      "homepage" : "http://home.schmorp.de/",
+      "homepage" : "http://software.schmorp.de/pkg/JSON-XS.html",
       "license" : [
          "http://dev.perl.org/licenses/"
       ],
@@ -54,5 +54,5 @@
          "url" : "https://github.com/rurban/Cpanel-JSON-XS"
       }
    },
-   "version" : "2.3314"
+   "version" : "2.3401"
 }

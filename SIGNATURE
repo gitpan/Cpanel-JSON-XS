@@ -1,5 +1,5 @@
 This file contains message digests of all files listed in MANIFEST,
-signed via the Module::Signature module, version 0.70.
+signed via the Module::Signature module, version 0.73.
 
 To verify the content in this distribution, first make sure you have
 Module::Signature installed, then type:
@@ -17,12 +17,12 @@ Hash: SHA1
 SHA1 9a56f3b919dfc8fced3803e165a2e38de62646e5 COPYING
 SHA1 6e268eef4e90c545159eebef1d06bfe20d8cf0a6 Changes
 SHA1 0a52f4bf0f9c84198dfc39f47f953b1ee622e9db MANIFEST
-SHA1 2599b182cda640e088b88898faf2ee9ac8ff3dee META.json
-SHA1 770611222018930823719299a7949ed42dd1e008 META.yml
-SHA1 175e4f1a86f97f5304160479c71038ccbce2c627 Makefile.PL
-SHA1 5952c8feaa5de1ee8453dd89f0813d7ff5506917 README
-SHA1 7cca062356728b85cd910c96946b2ca3bdcad4a7 XS.pm
-SHA1 60cfec2b675c4d84f6810ae0c6ad72f4e8b8501e XS.xs
+SHA1 d0d7ae701c0274e9b8bfe284f293c91f7e4c58b7 META.json
+SHA1 cc10dca70beefee8947d125e8f88e94e51355ee2 META.yml
+SHA1 4856ef5cb39bd758f96d2bc3366c299ae80d383e Makefile.PL
+SHA1 cf7a0e156caab7e4e91f233992d18a71709276e1 README
+SHA1 5d5339d8221716434f1979af8d8d7ce779e9b6ad XS.pm
+SHA1 2990bbd9e3e0f272f51121e038950809cf5aab93 XS.xs
 SHA1 6fcbffce8f8bcff0866df582db26ed378fa4ebbe XS/Boolean.pm
 SHA1 0ed4bd2d211390fbd18ebfe429d69536ec894786 bin/cpanel_json_xs
 SHA1 ea72bbe602baaabdd0004ef1d7e7cc3334b42bb4 eg/bench
@@ -50,12 +50,12 @@ SHA1 33231a52e12866a61c405496947827485ff2a811 t/19_incr.t
 SHA1 8f266979e62b50271f353e5e6905e52d9038834b t/20_faihu.t
 SHA1 1d9c81e5dfc27ff7f790354ce22af335cefe09c2 t/21_evans.t
 SHA1 3d155f37e687f929bd0cae767dc2dbf1993b73c9 t/22_comment_at_eof.t
-SHA1 a42b5263061de694f1edf407200589d895c2497e t/99_binary.t
+SHA1 a8664530cf040e24256e3bb16def1b5876e1f33c t/99_binary.t
 SHA1 ca9b00acccf2ae513551dd126ea9b73870c56acb typemap
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.13 (Darwin)
+Version: GnuPG v1.4.14 (GNU/Linux)
 
-iEYEARECAAYFAlItYY4ACgkQmm2SYo/9yUJR5wCfUFUFSEiW/XX02uCEKGC5DaCq
-i9QAmgKyufZ2xQqb1r8HTNvv403nNR/U
-=qQIT
+iEYEARECAAYFAlJMfGoACgkQmm2SYo/9yUKUJgCfVVZTOXoTgHAf+Afnjzf81Ae6
+CMoAoJFgiHLfT/aX9ki7nz/Ia74bGEc3
+=Obo8
 -----END PGP SIGNATURE-----
