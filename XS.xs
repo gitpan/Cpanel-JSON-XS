@@ -46,6 +46,10 @@
 #ifndef HeKUTF8
 #define HeKUTF8(he) 0
 #endif
+/* since 5.8.1 */
+#ifndef SvIsCOW_shared_hash
+#define SvIsCOW_shared_hash(pv) 0
+#endif
 
 /* three extra for rounding, sign, and end of string */
 #define IVUV_MAXCHARS (sizeof (UV) * CHAR_BIT * 28 / 93 + 3)
@@ -1669,7 +1673,7 @@ decode_json (SV *string, JSON *json, U8 **offset_return)
    * state (SvPV should do that, but it's buggy, see below).
    */
   /*SvGETMAGIC (string);*/
-  if (SvMAGICAL (string) || !SvPOK (string))
+  if (SvMAGICAL (string) || !SvPOK (string) || SvIsCOW_shared_hash(string))
     string = sv_2mortal (newSVsv (string));
 
   SvUPGRADE (string, SVt_PV);
@@ -2235,7 +2239,7 @@ PROTOTYPES: ENABLE
 
 void encode_json (SV *scalar)
 	ALIAS:
-        to_json_    = 0
+        _to_json    = 0
         encode_json = F_UTF8
 	PPCODE:
 {
@@ -2248,7 +2252,7 @@ void encode_json (SV *scalar)
 
 void decode_json (SV *jsonstr)
 	ALIAS:
-        from_json_  = 0
+        _from_json  = 0
         decode_json = F_UTF8
 	PPCODE:
 {
