@@ -4,7 +4,7 @@
       "cPanel Inc. <cpan@cpanel.net>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.88, CPAN::Meta::Converter version 2.132830",
+   "generated_by" : "ExtUtils::MakeMaker version 6.88, CPAN::Meta::Converter version 2.132140",
    "license" : [
       "perl_5"
    ],
@@ -54,5 +54,5 @@
          "url" : "https://github.com/rurban/Cpanel-JSON-XS"
       }
    },
-   "version" : "3.0103"
+   "version" : "3.0104"
 }
