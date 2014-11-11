@@ -3,29 +3,29 @@ abstract: 'JSON::XS for Cpanel, fast and correct serialising, also for 5.6.2'
 author:
   - 'cPanel Inc. <cpan@cpanel.net>'
 build_requires:
-  ExtUtils::MakeMaker: 0
+  ExtUtils::MakeMaker: '0'
 configure_requires:
-  ExtUtils::MakeMaker: 0
+  ExtUtils::MakeMaker: '0'
 dynamic_config: 1
-generated_by: 'ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.120921'
+generated_by: 'ExtUtils::MakeMaker version 7, CPAN::Meta::Converter version 2.142690'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
+  version: '1.4'
 name: Cpanel-JSON-XS
 no_index:
   directory:
     - t
     - inc
 recommends:
-  Encode: 1.9801
-  common::sense: 3.5
+  Encode: '1.9801'
+  common::sense: '3.5'
 requires:
-  Pod::Text: 2.08
-  Pod::Usage: 1.33
+  Pod::Text: '2.08'
+  Pod::Usage: '1.33'
 resources:
   bugtracker: https://github.com/rurban/Cpanel-JSON-XS/issues
   homepage: http://software.schmorp.de/pkg/JSON-XS.html
   license: http://dev.perl.org/licenses/
   repository: https://github.com/rurban/Cpanel-JSON-XS
-version: 3.0105
+version: '3.0106'
