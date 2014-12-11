@@ -21,6 +21,14 @@ Cpanel::JSON::XS - JSON::XS for Cpanel, fast and correct serialising, also for 5
  # Note that 5.6 misses most smart utf8 and encoding functionalities
  # of newer releases.
 
+ # Note that L<JSON::MaybeXS> will automatically use Cpanel::JSON::XS
+ # if available, at virtually no speed overhead either, so you should
+ # be able to just:
+ 
+ use JSON::MaybeXS;
+
+ # and do the same things, except that you have a pure-perl fallback now.
+
 =head1 DESCRIPTION
 
 This module converts Perl data structures to JSON and vice versa. Its
@@ -42,7 +50,7 @@ values and vice versa.
 
 =over 4
 
-=item * smart Unicode handling
+=item * correct Unicode handling
 
 This module knows how to handle Unicode with Perl version higher than 5.8.5,
 documents how and when it does so, and even documents what "correct" means.
@@ -94,6 +102,14 @@ or        L<https://rt.cpan.org/Public/Dist/Display.html?Queue=Cpanel-JSON-XS>
 
 B<Changes to JSON::XS>
 
+- fixed encode of numbers for dual-vars. Different string representations
+  are preserved, but numbers with temporary strings which represent the same number
+  are here treated as numbers, not strings. Cpanel::JSON::XS is a bit slower, but
+  preserves numeric types better.
+
+- different handling of inf/nan. Default now to null, optionally with -DSTRINGIFY_INFNAN
+  to "inf"/"nan".
+
 - added C<binary> extension, non-JSON and non JSON parsable, allows
   C<\xNN> and C<\NNN> sequences.
 
@@ -129,7 +145,7 @@ B<Changes to JSON::XS>
 
 package Cpanel::JSON::XS;
 
-our $VERSION = '3.0107';
+our $VERSION = '3.0108';
 our @ISA = qw(Exporter);
 
 our @EXPORT = qw(encode_json decode_json to_json from_json);
@@ -202,7 +218,7 @@ Perl.
 
 =item from_json
 
-from_json has been renamed to encode_json
+from_json has been renamed to decode_json
 
 =item to_json
 
@@ -510,6 +526,17 @@ character, after which more white-space and comments are allowed.
         # neither this one...
   ]
 
+=item * literal ASCII TAB characters in strings
+
+Literal ASCII TAB characters are now allowed in strings (and treated as
+C<\t>) in relaxed mode. Despite JSON mandates, that TAB character is
+substituted for "\t" sequence.
+
+  [
+     "Hello\tWorld",
+     "Hello<TAB>World", # literal <TAB> would not normally be allowed
+  ]
+
 =back
 
 =item $json = $json->canonical ([$enable])
@@ -521,7 +548,8 @@ by sorting their keys. This is adding a comparatively high overhead.
 
 If C<$enable> is false, then the C<encode> method will output key-value
 pairs in the order Perl stores them (which will likely change between runs
-of the same script).
+of the same script, and can change even within the same run from 5.18
+onwards).
 
 This option is useful if you want the same data structure to be encoded as
 the same JSON text (given the same overall settings). If it is disabled,
@@ -582,6 +610,8 @@ encoded. Has no effect on C<decode>.
 If C<$enable> is false (the default), then C<encode> will throw an
 exception when it encounters a blessed object.
 
+This setting has no effect on C<decode>.
+
 =item $json = $json->convert_blessed ([$enable])
 
 =item $enabled = $json->get_convert_blessed
@@ -601,12 +631,10 @@ methods called by the Perl core (== not by the user of the object) are
 usually in upper case letters and to avoid collisions with any C<to_json>
 function or method.
 
-This setting does not yet influence C<decode> in any way, but in the
-future, global hooks might get installed that influence C<decode> and are
-enabled by this setting.
+If C<$enable> is false (the default), then C<encode> will not consider
+this type of conversion.
 
-If C<$enable> is false, then the C<allow_blessed> setting will decide what
-to do when a blessed object is found.
+This setting has no effect on C<decode>.
 
 =item $json = $json->allow_tags ([$enable])
 
@@ -797,8 +825,7 @@ silently stop parsing there and return the number of characters consumed
 so far.
 
 This is useful if your JSON texts are not delimited by an outer protocol
-(which is not the brightest thing to do in the first place) and you need
-to know where the JSON text ends.
+and you need to know where the JSON text ends.
 
    Cpanel::JSON::XS->new->decode_prefix ("[1] the tail")
    => ([], 3)
@@ -1198,8 +1225,8 @@ your own serialiser method.
 =item simple scalars
 
 Simple Perl scalars (any scalar that is not a reference) are the most
-difficult objects to encode: Cpanel::JSON::XS will encode undefined scalars as
-JSON C<null> values, scalars that have last been used in a string context
+difficult objects to encode: Cpanel::JSON::XS will encode undefined scalars or inf/nan
+as JSON C<null> values, scalars that have last been used in a string context
 before encoding as JSON strings, and anything else as number value:
 
    # dump as number
@@ -1207,9 +1234,14 @@ before encoding as JSON strings, and anything else as number value:
    encode_json [-3.0e17]                # yields [-3e+17]
    my $value = 5; encode_json [$value]  # yields [5]
 
-   # used as string, so dump as string
+   # used as string, but the two representations are for the same number
    print $value;
-   encode_json [$value]                 # yields ["5"]
+   encode_json [$value]                 # yields [5]
+
+   # used as different string (non-matching dual-var)
+   my $str = '0 but true';
+   my $num = 1 + $str;
+   encode_json [$num, $str]           # yields [1,"0 but true"]
 
    # undef becomes null
    encode_json [undef]                  # yields [null]
@@ -1227,16 +1259,13 @@ You can force the type to be a JSON number by numifying it:
    $x += 0;     # numify it, ensuring it will be dumped as a number
    $x *= 1;     # same thing, the choice is yours.
 
-You can not currently force the type in other, less obscure, ways. Tell me
-if you need this capability (but don't forget to explain why it's needed
-:).
-
 Note that numerical precision has the same meaning as under Perl (so
 binary to decimal conversion follows the same rules as in Perl, which
 can differ to other languages). Also, your perl interpreter might expose
 extensions to the floating point numbers of your platform, such as
-infinities or NaN's - these cannot be represented in JSON, and it is an
-error to pass those in.
+infinities or NaN's - these cannot be represented in JSON, and thus
+null is returned instead. Optionally you can configure it to stringify
+inf and nan values.
 
 =back
 
@@ -1709,16 +1738,16 @@ use overload
    "0+"     => sub { ${$_[0]} },
    "++"     => sub { $_[0] = ${$_[0]} + 1 },
    "--"     => sub { $_[0] = ${$_[0]} - 1 },
-  '""'      => sub { ${$_[0]} == 1 ? 'true' : 'false' },
-  'eq'      => sub {
-    my ($obj, $op) = ref ($_[0]) ? ($_[0], $_[1]) : ($_[1], $_[0]);
-    if ($op eq 'true' or $op eq 'false') {
-      return "$obj" eq 'true' ? 'true' eq $op : 'false' eq $op;
-    }
-    else {
-      return $obj ? 1 == $op : 0 == $op;
-    }
-   },
+  # '""'    => sub { ${$_[0]} == 1 ? 'true' : 'false' },
+  #'eq'      => sub {
+  #  my ($obj, $op) = ref ($_[0]) ? ($_[0], $_[1]) : ($_[1], $_[0]);
+  #  if ($op eq 'true' or $op eq 'false') {
+  #    return "$obj" eq 'true' ? 'true' eq $op : 'false' eq $op;
+  #  }
+  #  else {
+  #    return $obj ? 1 == $op : 0 == $op;
+  #  }
+  # },
    fallback => 1;
 
 1;
