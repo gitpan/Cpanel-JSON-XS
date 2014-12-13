@@ -24,6 +24,15 @@
 #define HAVE_NO_POWL
 #endif
 
+#if defined(_WIN32)
+#define STR_INF "1.#INF"
+#define STR_NAN "1.#IND"
+#define STR_QNAN "1.#QNAN"
+#else
+#define STR_INF "inf"
+#define STR_NAN "nan"
+#endif
+
 /* some old perls do not have this, try to make it work, no */
 /* guarantees, though. if it breaks, you get to keep the pieces. */
 #ifndef UTF8_MAXBYTES
@@ -842,7 +851,7 @@ encode_rv (pTHX_ enc_t *enc, SV *sv)
         {
           dMY_CXT;
           dSP;
-          int count;
+          int count, items;
 
           ENTER; SAVETMPS; PUSHMARK (SP);
           EXTEND (SP, 2);
@@ -852,7 +861,7 @@ encode_rv (pTHX_ enc_t *enc, SV *sv)
 
           PUTBACK;
           count = call_sv ((SV *)GvCV (method), G_ARRAY);
-          const int items = count;
+          items = count;
           SPAGAIN;
 
           /* catch this surprisingly common error */
@@ -963,12 +972,22 @@ encode_sv (pTHX_ enc_t *enc, SV *sv)
       saveend = enc->end;
       Gconvert (SvNVX (sv), NV_DIG, 0, enc->cur);
 
-      if (strEQ(enc->cur, "nan") || strEQ(enc->cur, "inf")) {
+      if (strEQ(enc->cur, STR_INF) || strEQ(enc->cur, STR_NAN)
+#if defined(_WIN32)
+          || strEQ(enc->cur, STR_QNAN)
+#endif
+          || (*enc->cur == '-' &&
+              (strEQ(enc->cur+1, STR_INF) || strEQ(enc->cur+1, STR_NAN)
+#if defined(_WIN32)
+               || strEQ(enc->cur+1, STR_QNAN)
+#endif
+               ))) {
 #ifdef STRINGIFY_INFNAN
-        memmove(enc->cur+1, enc->cur, 4);
+        const int l = strlen(enc->cur);
+        memmove(enc->cur+1, enc->cur, l);
         *enc->cur = '"';
-        *(enc->cur + 4) = '"';
-        *(enc->cur + 5) = 0;
+        *(enc->cur + l+1) = '"';
+        *(enc->cur + l+2) = 0;
 #else
         strncpy(enc->cur, "null\0", 5);
 #endif
