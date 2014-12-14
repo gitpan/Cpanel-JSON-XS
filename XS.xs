@@ -29,8 +29,13 @@
 #define STR_NAN "1.#IND"
 #define STR_QNAN "1.#QNAN"
 #else
+#if defined(sun) || defined(__sun)
+#define STR_INF "Infinity"
+#define STR_NAN "NaN"
+#else
 #define STR_INF "inf"
 #define STR_NAN "nan"
+#endif
 #endif
 
 /* some old perls do not have this, try to make it work, no */
@@ -170,6 +175,7 @@ typedef struct {
   STRLEN incr_pos; /* the current offset into the text */
   int incr_nest;   /* {[]}-nesting level */
   unsigned char incr_mode;
+  unsigned char infnan_mode;
 } JSON;
 
 INLINE void
@@ -982,15 +988,19 @@ encode_sv (pTHX_ enc_t *enc, SV *sv)
                || strEQ(enc->cur+1, STR_QNAN)
 #endif
                ))) {
-#ifdef STRINGIFY_INFNAN
-        const int l = strlen(enc->cur);
-        memmove(enc->cur+1, enc->cur, l);
-        *enc->cur = '"';
-        *(enc->cur + l+1) = '"';
-        *(enc->cur + l+2) = 0;
-#else
-        strncpy(enc->cur, "null\0", 5);
-#endif
+        if (enc->json.infnan_mode == 0) {
+          strncpy(enc->cur, "null\0", 5);
+        }
+        else if (enc->json.infnan_mode == 1) {
+          const int l = strlen(enc->cur);
+          memmove(enc->cur+1, enc->cur, l);
+          *enc->cur = '"';
+          *(enc->cur + l+1) = '"';
+          *(enc->cur + l+2) = 0;
+        }
+        else if (enc->json.infnan_mode != 2) {
+          croak ("invalid stringify_infnan mode %c. Must be 0, 1 or 2", enc->json.infnan_mode);
+        }
       }
       if (SvPOKp (sv) && !strEQ(enc->cur, SvPVX (sv))) {
         STRLEN len;
@@ -2825,6 +2835,20 @@ int get_max_size (JSON *self)
 	OUTPUT:
         RETVAL
 
+void stringify_infnan (JSON *self, IV infnan_mode = 1)
+	PPCODE:
+        self->infnan_mode = (unsigned char)infnan_mode;
+        if (self->infnan_mode < 0 || self->infnan_mode > 2) {
+          croak ("invalid stringify_infnan mode %c. Must be 0, 1 or 2", self->infnan_mode);
+        }
+        XPUSHs (ST (0));
+        
+int get_stringify_infnan (JSON *self)
+	CODE:
+        RETVAL = (int)self->infnan_mode;
+	OUTPUT:
+        RETVAL
+        
 void filter_json_object (JSON *self, SV *cb = &PL_sv_undef)
 	PPCODE:
 {
